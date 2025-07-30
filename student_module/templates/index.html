@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Code Runner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+    }
+    .left-panel {
+      width: 40%;
+      padding: 20px;
+      background-color: #f4f4f4;
+      border-right: 1px solid #ccc;
+    }
+    .right-panel {
+      width: 60%;
+      display: flex;
+      flex-direction: column;
+    }
+    #editor-container {
+      height: 60%;
+    }
+    .controls {
+      padding: 10px;
+      background-color: #fff;
+      border-top: 1px solid #ccc;
+    }
+    select, button {
+      margin-right: 10px;
+      padding: 5px 10px;
+    }
+    pre {
+      margin: 0;
+      padding: 10px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      overflow: auto;
+      height: 35%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="left-panel">
+    <h3>Question / Instructions</h3>
+    <p>You can display your question or problem description here for the user to solve.</p>
+    <p>This space can also include hints, examples, or markdown-rendered content if needed.</p>
+  </div>
+
+  <div class="right-panel">
+    <div id="editor-container"></div>
+
+    <div class="controls">
+      <select id="language">
+        <option value="python">Python</option>
+        <option value="c">C</option>
+        <option value="cpp">C++</option>
+        <option value="java">Java</option>
+        <option value="javascript">JavaScript</option>
+      </select>
+      <button onclick="runCode()">Run</button>
+    </div>
+
+    <pre id="output">// Output will appear here</pre>
+  </div>
+
+  <script>
+    let editor;
+
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('editor-container'), {
+        value: `// Write your code here`,
+        language: 'python',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 14
+      });
+
+      document.getElementById("language").addEventListener("change", function () {
+        const lang = this.value;
+        monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang);
+      });
+    });
+
+    async function runCode() {
+      const code = editor.getValue();
+      const language = document.getElementById("language").value;
+
+      const response = await fetch("/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ code, language })
+      });
+
+      const result = await response.json();
+      const output = result.output ? result.output.trim() : "";
+      const error = result.error ? result.error.trim() : "";
+      document.getElementById("output").textContent = output || error || "No Output";
+    }
+  </script>
+
+</body>
+</html>

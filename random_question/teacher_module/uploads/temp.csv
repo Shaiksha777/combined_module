@@ -1,0 +1,11 @@
+Question_ID,Question
+Q101,"Write a Python program to check if a number is prime."
+Q102,"Write a program to find the factorial of a given number."
+Q103,"Create a function that returns the Fibonacci sequence up to N terms."
+Q104,"Write a program to reverse a string without using built-in functions."
+Q105,"Write a program that checks if a string is a palindrome."
+Q106,"Implement a function to sort a list using bubble sort."
+Q107,"Write a program to count the frequency of each word in a given string."
+Q108,"Design a function to find the largest and smallest number in a list."
+Q109,"Write a Python script to calculate the sum of digits of a number."
+Q110,"Write a program to find the GCD of two numbers using Euclidean algorithm."
