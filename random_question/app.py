@@ -109,7 +109,8 @@ def start_student_server():
         # Use subprocess to launch it
         process = subprocess.Popen([sys.executable, student_script_path])
         print('started')
-        return "Student server started successfully!"
+
+        return jsonify(True)
 
     except Exception as e:
         print(e)

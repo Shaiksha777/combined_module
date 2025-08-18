@@ -53,6 +53,11 @@
     <h3>Question / Instructions</h3>
     <p>You can display your question or problem description here for the user to solve.</p>
     <p>This space can also include hints, examples, or markdown-rendered content if needed.</p>
+
+    {% if name is not none%}
+    <p>Welome {{name}}</p>
+    <p>Question assigned to you {{question_id}}</p>
+    {%endif%}
   </div>
 
   <div class="right-panel">
@@ -79,7 +84,7 @@
 
     require(['vs/editor/editor.main'], function () {
       editor = monaco.editor.create(document.getElementById('editor-container'), {
-        value: `// Write your code here`,
+        value: `# Write your code here`,
         language: 'python',
         theme: 'vs-dark',
         automaticLayout: true,

@@ -6,11 +6,11 @@ from collections import deque
 UPLOAD_FOLDER = "code_templates"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 Queue = deque()
-def execute_code(code, language):
+def execute_code(code, language,id):
     
     
     
-    filename = os.path.join(UPLOAD_FOLDER, "code")
+    filename = os.path.join(UPLOAD_FOLDER, f"code_{id}")
     
     try:
         if language == "python":
@@ -67,4 +67,6 @@ def execute_code(code, language):
         return "", str(e)
     finally:
         # Optional: Clean up temp files if needed
-        pass
+        os.remove(filename)
+        print('file removed sucessfully')
+        

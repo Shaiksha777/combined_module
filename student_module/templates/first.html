@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Two Numbers</title>
+</head>
+<body>
+
+    <h2>Enter your details</h2>
+
+    <form id="addForm">
+        <input type="Name" name="name" id="name" placeholder="Enter your Name: " required>
+        <input type="Roll No" name="roll_no" id="roll_no" placeholder="Enter Your Roll No: " required>
+        <button type="submit">Submit</button>
+    </form>
+
+    <h3 id="result"></h3>
+
+    <script>
+        document.getElementById('addForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const a = document.getElementById('name').value;
+            const b = document.getElementById('roll_no').value;
+
+            fetch('/save_details', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: a, roll_no: b })
+            })
+
+        .then(response => response.json())
+        .then(data => {
+            if (data.redirect) {
+                window.location.href = data.redirect; // go to /index
+            }
+        });
+            
+        });
+    </script>
+
+</body>
+</html>
