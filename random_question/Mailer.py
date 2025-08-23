@@ -4,7 +4,7 @@ from password import passw  # Make sure this is a strong Gmail App Password
 
 class Mail:
 
-    def send_mail(self, recipient_email, question_id):
+    def send_mail(self, recipient_email,ip_address,token):
         # Gmail account settings
         GMAIL_ADDRESS = '02syedshaiksha@gmail.com'
         GMAIL_APP_PASSWORD = passw
@@ -23,7 +23,7 @@ Dear Student,
 
 You have been assigned a coding test question through the SkillAssess platform.
 
-🔹 Question ID: {question_id}
+    link for the test: http://{ip_address}:5010/test/{token}
 
 Please log in to the SkillAssess exam portal and begin your test. Do not share this ID.
 

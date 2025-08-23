@@ -9,8 +9,8 @@ from flask import send_file
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import subprocess
-
-
+import socket
+from token_handler import get_token,decrpyt_token
 # -------------------------------
 # Initialize Flask & Config
 # -------------------------------
@@ -116,6 +116,11 @@ def start_student_server():
         print(e)
         return f"Error launching student app: {str(e)}", 500    
 
+def get_ip():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    return ip_address
+
 @app.route('/assign_questions')
 def assign_the_questions():
     global questions_filename, emails_filename,emails_uploaded,questions_uploaded
@@ -137,11 +142,12 @@ def assign_the_questions():
         
 
     mail_object = Mail()
-
-
-    for i in assigned:
-        mail_object.send_mail(recipient_email=i,question_id=assigned[i])
-        print('mail sucessfully sent to', i)
+    ip_address = get_ip()
+    for email in assigned:
+        question_id = assigned[email]
+        token = get_token(question_id=question_id,email=email)
+        mail_object.send_mail(recipient_email=email,ip_address = ip_address,token=token)
+        print('mail sucessfully sent to', email)
     
         
 
