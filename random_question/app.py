@@ -178,7 +178,7 @@ def reset_flags():
     return redirect(url_for('index'))
 
 def start_flask():
-    app.run(debug=False, port=5000, use_reloader=False)
+    app.run(debug=True, port=5000, use_reloader=False)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
-Question_ID,Question
-Q101,"Write a Python program to check if a number is prime."
-Q102,"Write a program to find the factorial of a given number."
-Q103,"Create a function that returns the Fibonacci sequence up to N terms."
-Q104,"Write a program to reverse a string without using built-in functions."
-Q105,"Write a program that checks if a string is a palindrome."
-Q106,"Implement a function to sort a list using bubble sort."
-Q107,"Write a program to count the frequency of each word in a given string."
-Q108,"Design a function to find the largest and smallest number in a list."
-Q109,"Write a Python script to calculate the sum of digits of a number."
-Q110,"Write a program to find the GCD of two numbers using Euclidean algorithm."
+Question_ID,Question,Sample_Input,Sample_Output
+Q101,Write a Python program to check if a number is prime.,7||8,7 is a prime number||8 is not a prime number
+Q102,Write a program to find the factorial of a given number.,5||0||3,Factorial of 5 is 120||Factorial of 0 is 1||Factorial of 3 is 6
+Q103,Create a function that returns the Fibonacci sequence up to N terms.,7||1," 0,1,1,2,3,5,8||0"
+Q104,Write a program to reverse a string without using built-in functions.,hello||Python||nandy,olleh||nohtyP||ydnan
+Q105,Write a program that checks if a string is a palindrome.,radar||hello,The string is a palindrome||The string is not a palindrome
+Q106,Implement a function to sort a list using bubble sort.,"[5,2,9,1]||[3,3,1,2]","Sorted list: [1,2,5,9]||Sorted list: [1,2,3,3]"
+Q107,Write a program to count the frequency of each word in a given string.,hello world hello||test code test code test,"{'hello':2,'world':1}||{'test':3,'code':2}"
+Q108,Design a function to find the largest and smallest number in a list.,"[4,7,1,9]||[10]","Largest: 9, Smallest: 1||Largest: 10, Smallest: 10"
+Q109,Write a Python script to calculate the sum of digits of a number.,1234||0||2122,Sum of digits: 10||Sum of digits: 0||Sum of digits: 7
+Q110,Write a program to find the GCD of two numbers using Euclidean algorithm.,48 18||7 5,GCD is 6||GCD is 1
