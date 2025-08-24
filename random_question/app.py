@@ -11,6 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import subprocess
 import socket
 from token_handler import get_token,decrpyt_token
+import shutil
 # -------------------------------
 # Initialize Flask & Config
 # -------------------------------
@@ -19,7 +20,11 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # project root
+Questions = os.path.join(BASE_DIR, 'question_folder')
+os.makedirs(Questions, exist_ok=True)
+app.config['Questions'] = Questions
+print(BASE_DIR)
 questions_uploaded = False
 emails_uploaded = False
 questions_filename = None
@@ -53,7 +58,6 @@ def upload_questions():
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
-   
     with open(filepath, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         if 'Question_ID' not in reader.fieldnames:
@@ -61,7 +65,11 @@ def upload_questions():
                                    questions_uploaded=False,
                                    emails_uploaded=emails_uploaded,
                                    error="Invalid Questions CSV: 'Question_ID' column is missing.")
-    
+    filename_questions = 'questions.csv'
+    filepath_questions = os.path.join(app.config['Questions'], filename_questions)
+    shutil.copy(filepath, filepath_questions)
+
+
     questions_uploaded = True
     questions_filename = filename
 

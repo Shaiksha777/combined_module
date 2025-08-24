@@ -3,10 +3,18 @@ from code_engine import execute_code
 from flask_cors import CORS
 import time
 from token_handler import decrpyt_token
+import pandas as pd
+import os
 app = Flask(__name__)
 
 CORS(app)
 app.secret_key = 'Shaiksh@7'
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+Question_folder = os.path.join(BASE_DIR, 'question_folder')
+app.config['Questions_folder'] = Question_folder
+print(BASE_DIR)
+
 
 class Person:
     def __init__(self,name,roll_no,question_assigned=102):
@@ -30,20 +38,32 @@ def index():
         return redirect(url_for('return_index'))
     return render_template("first.html")
 
+def get_question(question_id):
+    df = pd.read_csv(f'{Question_folder}\\questions.csv')
+    result = df.loc[df['Question_ID'] == question_id, 'Question'].iloc[0]
+    print(result)
+    return result
+
 @app.route('/index')
 def return_index():
     
     email = session.get('email')
     question_id = session.get('question_id')
+    question = get_question(question_id)
     if email == None:
         return redirect(url_for('index'))
     
-    return render_template('index.html',name = email,question_id = question_id)
+    return render_template('index.html',name = email,question = question,question_id = question_id)
 
 @app.route('/test/<token>')
 def extract_data(token):
     encrypted_token = token
-    value = decrpyt_token(encrypted_token)
+    try:
+        value = decrpyt_token(encrypted_token)
+    except Exception as e:
+        return f'invalid URL {e}'
+    
+
     print(value)
     question_id = value['question_id']
     email = value['email']

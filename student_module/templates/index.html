@@ -50,13 +50,10 @@
 <body>
 
   <div class="left-panel">
-    <h3>Question / Instructions</h3>
-    <p>You can display your question or problem description here for the user to solve.</p>
-    <p>This space can also include hints, examples, or markdown-rendered content if needed.</p>
-
     {% if name is not none%}
     <p>Welome {{name}}</p>
-    <p>Question assigned to you {{question_id}}</p>
+    <h3>Question No {{question_id}}</h3>
+    <p>Question assigned to you: <br><br><br>{{question}}</p>
     {%endif%}
   </div>
 
