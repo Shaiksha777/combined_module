@@ -188,7 +188,7 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="/start_server">Start Server</a></li>
+        <li class="nav-item"><a class="nav-link" id="server" href="/start_server">Start Server</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Reports</a></li>
         <li class="nav-item"><a class="nav-link" href="#">Settings</a></li>
       </ul>
@@ -263,6 +263,10 @@
 </footer>
 
 <script>
+  server = document.querySelector('#server')
+  server.addEventListener('click',()=>{
+    server.innerText = 'stop server'
+  })
   // Dropzone behavior
   document.querySelectorAll('.dropzone').forEach(zone => {
     ['dragenter', 'dragover'].forEach(evt => zone.addEventListener(evt, e => {

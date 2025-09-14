@@ -118,7 +118,7 @@ def start_student_server():
         process = subprocess.Popen([sys.executable, student_script_path])
         print('started')
 
-        return jsonify(True)
+        return redirect(url_for('index'))
 
     except Exception as e:
         print(e)

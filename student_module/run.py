@@ -6,7 +6,7 @@ from token_handler import decrpyt_token
 import pandas as pd
 import os
 app = Flask(__name__)
-
+from AI_engine import load_models,predict
 CORS(app)
 app.secret_key = 'Shaiksh@7'
 
@@ -15,6 +15,7 @@ Question_folder = os.path.join(BASE_DIR, 'question_folder')
 app.config['Questions_folder'] = Question_folder
 print(BASE_DIR)
 
+tokenizer, model = load_models()
 
 class Person:
     def __init__(self,name,roll_no,question_assigned=102):
@@ -150,7 +151,19 @@ def run_code():
     except Exception as e:
         return jsonify({"output": "", "error": str(e)}), 500
 
-    
+
+@app.route('/submit',methods=["POST"]) 
+def submit_code():
+        data = request.get_json()
+        if not data:
+            return "Invalid request", 400
+        print(data)
+        code = data.get("code", "")
+        language = data.get("language", "python")
+        
+        p_class, label = predict(code=code,tokenizer=tokenizer,model=model)
+        print('the predicted label is: ',label)
+        return jsonify({"label": label})
     
 if __name__ == "__main__":
     app.run('0.0.0.0',debug=True,port=5010)
