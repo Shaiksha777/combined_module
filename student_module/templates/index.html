@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <title>Code Runner - Student Interface</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     /* Reset & Typography */
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { display: flex; height: 100vh; background-color: #f4f6f8; color: #1f2937; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0;  }
+    body { display: flex; height: 100vh; background-color: #f4f6f8; color: #1f2937; overflow: hidden;   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
 
     /* Left Panel */
     .left-panel {
@@ -84,7 +84,7 @@
       flex-direction: column;
       overflow: hidden;
     }
-    #editor-container { flex: 1; border-bottom: 1px solid #111827; }
+    #editor-container { flex: 1; border-bottom: 1px solid #111827 }
 
     /* Controls */
     .controls {
@@ -108,10 +108,7 @@
     button:hover:not(:disabled) { background: #4338ca; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .monaco-editor, 
-.monaco-editor .view-lines {
-    font-family: Consolas, Menlo, "Ubuntu Mono", "Courier New", monospace !important;
-}
+
 
 
     /* Output Section */
@@ -155,11 +152,11 @@
     </div>
 
     <div id="testcases">
-        <h3>Sample Testcases:</h3>
+        <h3>Sample Input/Output:</h3>
         {% if sample_inputs and sample_outputs %}
             {% for i in range(sample_inputs|length) %}
                 <div class="testcase">
-                    <strong>Testcase {{ i + 1 }}:</strong><br><br>
+                    <strong>Input {{ i + 1 }}:</strong><br><br>
                     <strong>Input:</strong><br>
                     <pre>{{ sample_inputs[i] }}</pre><br>
                     <strong>Output:</strong><br>
@@ -184,7 +181,10 @@
         <option value="java">Java</option>
         <option value="javascript">JavaScript</option>
       </select>
-      <button id="run-btn" onclick="runCode()">Run Code</button>
+      <div style="display: flex; gap: 10px;">
+        <button id="run-btn" onclick="runCode()">Run Code</button>
+        <button id="submit-btn" onclick="submitCode()" style="background: #059669;">Submit Code</button>
+      </div>
     </div>
 
     <pre id="output">// Output will appear here</pre>
@@ -234,6 +234,33 @@
         } finally {
             runBtn.disabled = false;
             runBtn.innerText = "Run Code";
+        }
+    }
+
+    async function submitCode() {
+        const submitBtn = document.getElementById("submit-btn");
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Submitting...";
+        try {
+            const code = editor.getValue();
+            const language = document.getElementById("language").value;
+
+            const response = await fetch("/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code, language })
+            });
+
+            if (response.ok) {
+                document.getElementById("output").textContent = "Code submitted successfully! AI plagiarism check completed.";
+            } else {
+                document.getElementById("output").textContent = "Submission failed. Please try again.";
+            }
+        } catch (err) {
+            document.getElementById("output").textContent = "Submission error: " + err;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Submit Code";
         }
     }
   </script>
