@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, redirect, url_for,jsonify
 import os
+import json
 from werkzeug.utils import secure_filename
 from threading import Thread
 import csv
@@ -73,6 +74,7 @@ def upload_questions():
     questions_uploaded = True
     questions_filename = filename
 
+
     return render_template('index.html',
                            questions_uploaded=questions_uploaded,
                            emails_uploaded=emails_uploaded)
@@ -137,16 +139,24 @@ def assign_the_questions():
         return "Both files must be uploaded first.", 400
 
   
-    assigned = assign_randomly()
+    assigned,boiler_code,test_cases = assign_randomly()
     emails_uploaded = False
     questions_uploaded = False
     with open('assigned_questions.csv','w') as f:
-        fieldnames = ['email','question_assigned']
+        fieldnames = ['email','question_assigned','boiler_code','test_cases']
         writer = csv.DictWriter(f,fieldnames=fieldnames)
         print(assigned)
         writer.writeheader()
         for email in assigned:
-            writer.writerow({'email':f'{email}','question_assigned':f'{assigned[email]}'})
+            qid = assigned[email]
+            bc = boiler_code.get(qid, '')
+            tc = test_cases.get(qid, [])
+            writer.writerow({
+                'email': f'{email}',
+                'question_assigned': f'{qid}',
+                'boiler_code': bc,
+                'test_cases': json.dumps(tc, ensure_ascii=False)
+            })
         
 
     mail_object = Mail()

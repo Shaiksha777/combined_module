@@ -1,0 +1,12 @@
+Gemini generation failed for Q105: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q103: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q104: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q101: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q101: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q108: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q107: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q103: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCpgw-y10RlLMxakeBCnwhnla6e-NPJJDM
+Gemini generation failed for Q108: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyChujUxcB3lOK3215fRXzbX26w7XuhXO8Q
+Gemini generation failed for Q103: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyChujUxcB3lOK3215fRXzbX26w7XuhXO8Q
+Gemini generation failed for Q107: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyChujUxcB3lOK3215fRXzbX26w7XuhXO8Q
+Gemini generation failed for Q102: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyChujUxcB3lOK3215fRXzbX26w7XuhXO8Q

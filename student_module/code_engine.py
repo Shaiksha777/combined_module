@@ -1,3 +1,4 @@
+
 import subprocess
 import uuid
 import os 
@@ -6,8 +7,7 @@ from collections import deque
 UPLOAD_FOLDER = "code_templates"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 Queue = deque()
-def execute_code(code, language,id):
-    
+def execute_code(code, language, id, input_data: str = ""):
     
     
     filename = os.path.join(UPLOAD_FOLDER, f"code_{id}")
@@ -17,7 +17,7 @@ def execute_code(code, language,id):
             filename += ".py"
             with open(filename, "w") as f:
                 f.write(code)
-            result = subprocess.run(["python", filename], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(["python", filename], capture_output=True, text=True, timeout=5, input=input_data)
             print(result)
 
         elif language == "c":
@@ -25,10 +25,10 @@ def execute_code(code, language,id):
             output_exe = filename + ".exe"
             with open(filename_c, "w") as f:
                 f.write(code)
-            compile = subprocess.run(["gcc", filename_c, "-o", output_exe], capture_output=True, text=True,timeout=1)
+            compile = subprocess.run(["gcc", filename_c, "-o", output_exe], capture_output=True, text=True, timeout=1)
             if compile.returncode != 0:
                 return "", compile.stderr
-            result = subprocess.run([output_exe], capture_output=True, text=True, timeout=5)
+            result = subprocess.run([output_exe], capture_output=True, text=True, timeout=5, input=input_data)
 
         elif language == "cpp":
             filename_cpp = filename + ".cpp"
@@ -38,7 +38,7 @@ def execute_code(code, language,id):
             compile = subprocess.run(["g++", filename_cpp, "-o", output_exe], capture_output=True, text=True)
             if compile.returncode != 0:
                 return "", compile.stderr
-            result = subprocess.run([output_exe], capture_output=True, text=True, timeout=5)
+            result = subprocess.run([output_exe], capture_output=True, text=True, timeout=5, input=input_data)
 
         elif language == "java":
             filename_java = filename + ".java"
@@ -48,13 +48,13 @@ def execute_code(code, language,id):
             compile = subprocess.run(["javac", filename_java], capture_output=True, text=True)
             if compile.returncode != 0:
                 return "", compile.stderr
-            result = subprocess.run(["java", "-cp", UPLOAD_FOLDER, classname], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(["java", "-cp", UPLOAD_FOLDER, classname], capture_output=True, text=True, timeout=5, input=input_data)
 
         elif language == "javascript":
             filename += ".js"
             with open(filename, "w") as f:
                 f.write(code)
-            result = subprocess.run(["node", filename], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(["node", filename], capture_output=True, text=True, timeout=5, input=input_data)
 
         else:
             return "", "Unsupported language"
@@ -67,6 +67,9 @@ def execute_code(code, language,id):
         return "", str(e)
     finally:
         # Optional: Clean up temp files if needed
-        os.remove(filename)
-        print('file removed sucessfully')
-        
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+                print('file removed sucessfully')
+        except Exception:
+            pass

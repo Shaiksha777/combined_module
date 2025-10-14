@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Code Runner - Student Interface</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-  <style>
+<style>
     /* Reset & Typography */
     * { box-sizing: border-box; margin: 0; padding: 0;  }
     body { display: flex; height: 100vh; background-color: #f4f6f8; color: #1f2937; overflow: hidden;   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -19,6 +19,24 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
+    }
+
+    /* Vertical resizer between panels */
+    #resizer {
+      width: 6px;
+      background: transparent;
+      cursor: col-resize;
+      position: relative;
+    }
+    #resizer::after {
+      content: "";
+      position: absolute;
+      top: 0; bottom: 0; left: 2px; right: 2px;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+    #resizer:hover::after {
+      background: rgba(31, 41, 55, 0.25); /* subtle dark on hover */
     }
 
     /* Welcome text */
@@ -85,6 +103,22 @@
       overflow: hidden;
     }
     #editor-container { flex: 1; border-bottom: 1px solid #111827 }
+
+    /* Horizontal resizer for output panel */
+    #output-resizer {
+      height: 6px;
+      background: transparent;
+      cursor: row-resize;
+      position: relative;
+    }
+    #output-resizer::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 2px; bottom: 2px;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+    #output-resizer:hover::after { background: rgba(31,41,55,0.25); }
 
     /* Controls */
     .controls {
@@ -169,6 +203,9 @@
     </div>
   </div>
 
+  <!-- DRAG RESIZER -->
+  <div id="resizer" title="Drag to resize panels"></div>
+
   <!-- RIGHT PANEL -->
   <div class="right-panel">
     <div id="editor-container"></div>
@@ -183,86 +220,293 @@
       </select>
       <div style="display: flex; gap: 10px;">
         <button id="run-btn" onclick="runCode()">Run Code</button>
-        <button id="submit-btn" onclick="submitCode()" style="background: #059669;">Submit Code</button>
+        <button id="submit-btn" onclick="submitCode()" style="background: #2563eb;">Submit Code</button>
+        <button id="final-submit-btn" onclick="finalSubmit()" style="background: #059669;">Submit Test</button>
       </div>
     </div>
 
-    <pre id="output">// Output will appear here</pre>
+    <section id="results" style="background:#0b1221; border:1px solid #1f2937; border-radius:8px; padding:14px; color:#e5e7eb; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">
+      <div id="summary" style="margin-bottom:10px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;"></div>
+      <div style="overflow:auto;">
+        <table id="results-table" style="width:100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background:#111827;">
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">#</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">Input</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">Expected</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">Output</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">Error</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #374151;">Result</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <pre id="output" style="margin-top:12px;">// Output will appear here</pre>
+    </section>
   </div>
 
+  <!-- Embed boiler code as JSON to avoid lint issues in JS -->
+  <script id="boiler-data" type="application/json">{{ (boiler_code if boiler_code else '# Write your code here') | tojson }}</script>
   <script>
     let editor;
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
     require(['vs/editor/editor.main'], function () {
+      const initialCode = (function(){
+        try {
+          return JSON.parse(document.getElementById('boiler-data').textContent || '"# Write your code here"');
+        } catch (_) {
+          return '# Write your code here';
+        }
+      })();
       editor = monaco.editor.create(document.getElementById('editor-container'), {
-        value: '# Write your code here',
+        value: initialCode,
         language: 'python',
         theme: 'vs-dark',
         automaticLayout: true,
         fontSize: 14,
-        fontFamily: 'Consolas, Menlo, "Ubuntu Mono", "Courier New", monospace', // VS Code font
+        fontFamily: 'Consolas, Menlo, "Ubuntu Mono", "Courier New", monospace',
         minimap: { enabled: false }
       });
 
-      document.getElementById("language").addEventListener("change", function () {
+      document.getElementById('language').addEventListener('change', function () {
         const lang = this.value;
-        monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang);
+        monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : (lang === 'c' ? 'c' : lang));
       });
+
+      window.addEventListener('resize', function () { editor.layout(); });
     });
 
+    function escapeHtml(s) {
+      return (s || '').replace(/[&<>"]+/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    }
+
+    function renderEvaluation(payload, opts = {title: ''}) {
+      const title = opts.title || '';
+      const summaryDiv = document.getElementById('summary');
+      const tbody = document.querySelector('#results-table tbody');
+      tbody.innerHTML = '';
+
+      if (payload && payload.mode === 'all') {
+        const total = (payload.summary && payload.summary.total) || 0;
+        const passed = (payload.summary && payload.summary.passed) || 0;
+        const plagiarism = payload.plagiarism_label || '';
+        summaryDiv.innerHTML = `
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight:600; font-size:14px;">${escapeHtml(title)}</div>
+              <div style="margin-top:4px; color:#9ca3af;">Passed <b>${passed}</b> of <b>${total}</b> test cases</div>
+            </div>
+            <div style="background:#111827; border:1px solid #374151; padding:6px 10px; border-radius:6px;">Plagiarism: <b>${escapeHtml(plagiarism)}</b></div>
+          </div>`;
+
+        (payload.results || []).forEach((r) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="padding:8px; border-bottom:1px solid #374151; color:#9ca3af;">${r.index || ''}</td>
+            <td style="padding:8px; border-bottom:1px solid #374151;"><pre style="white-space:pre-wrap;">${escapeHtml(r.input)}</pre></td>
+            <td style="padding:8px; border-bottom:1px solid #374151;"><pre style="white-space:pre-wrap;">${escapeHtml(r.expected_output)}</pre></td>
+            <td style="padding:8px; border-bottom:1px solid #374151;"><pre style="white-space:pre-wrap;">${escapeHtml(r.output)}</pre></td>
+            <td style="padding:8px; border-bottom:1px solid #374151;"><pre style="white-space:pre-wrap; color:#fca5a5;">${escapeHtml(r.error)}</pre></td>
+            <td style="padding:8px; border-bottom:1px solid #374151; font-weight:600; color:${r.passed ? '#34d399' : '#f87171'};">${r.passed ? 'PASS' : 'FAIL'}</td>`;
+          tbody.appendChild(tr);
+        });
+      } else if (payload && payload.mode === 'single') {
+        const t = payload.test || {};
+        const r = payload.result || {};
+        summaryDiv.innerHTML = `
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight:600; font-size:14px;">${escapeHtml(title)}</div>
+              <div style="margin-top:4px; color:#9ca3af;">Single test run</div>
+            </div>
+            <div style="background:#111827; border:1px solid #374151; padding:6px 10px; border-radius:6px;">Result: <b style="color:${r.passed ? '#34d399' : '#f87171'};">${r.passed ? 'PASS' : 'FAIL'}</b></div>
+          </div>`;
+
+        const rows = [
+          {label:'#', value:'1'},
+          {label:'Input', value:t.input || ''},
+          {label:'Expected', value:t.expected_output || ''},
+          {label:'Output', value:r.output || ''},
+          {label:'Error', value:r.error || ''}
+        ];
+        rows.forEach(() => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style=\"padding:8px; border-bottom:1px solid #374151; color:#9ca3af;\">1</td>
+            <td style=\"padding:8px; border-bottom:1px solid #374151;\"><pre style=\"white-space:pre-wrap;\">${escapeHtml(t.input || '')}</pre></td>
+            <td style=\"padding:8px; border-bottom:1px solid #374151;\"><pre style=\"white-space:pre-wrap;\">${escapeHtml(t.expected_output || '')}</pre></td>
+            <td style=\"padding:8px; border-bottom:1px solid #374151;\"><pre style=\"white-space:pre-wrap;\">${escapeHtml(r.output || '')}</pre></td>
+            <td style=\"padding:8px; border-bottom:1px solid #374151;\"><pre style=\"white-space:pre-wrap; color:#fca5a5;\">${escapeHtml(r.error || '')}</pre></td>
+            <td style=\"padding:8px; border-bottom:1px solid #374151; font-weight:600;\"></td>`;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
     async function runCode() {
-        const runBtn = document.getElementById("run-btn");
+        const runBtn = document.getElementById('run-btn');
         runBtn.disabled = true;
-        runBtn.innerText = "Running...";
+        runBtn.innerText = 'Running...';
         try {
             const code = editor.getValue();
-            const language = document.getElementById("language").value;
-
-            const response = await fetch("/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const language = document.getElementById('language').value;
+            const response = await fetch('/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language })
             });
-
             const result = await response.json();
-            const output = result.output ? result.output.trim() : "";
-            const error = result.error ? result.error.trim() : "";
-
-            document.getElementById("output").textContent = output || error || "No Output";
+            renderEvaluation(result, {title: 'Run Result'});
         } catch (err) {
-            document.getElementById("output").textContent = "Server error: " + err;
+            document.getElementById('output').textContent = 'Server error: ' + err;
         } finally {
             runBtn.disabled = false;
-            runBtn.innerText = "Run Code";
+            runBtn.innerText = 'Run Code';
         }
     }
 
     async function submitCode() {
-        const submitBtn = document.getElementById("submit-btn");
+        const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
-        submitBtn.innerText = "Submitting...";
+        submitBtn.innerText = 'Evaluating...';
         try {
             const code = editor.getValue();
-            const language = document.getElementById("language").value;
-
-            const response = await fetch("/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+            const language = document.getElementById('language').value;
+            const response = await fetch('/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, language })
             });
-
-            if (response.ok) {
-                document.getElementById("output").textContent = "Code submitted successfully! AI plagiarism check completed.";
-            } else {
-                document.getElementById("output").textContent = "Submission failed. Please try again.";
+            if (!response.ok) {
+                document.getElementById('output').textContent = 'Submission failed. Please try again.';
+                return;
             }
+            const result = await response.json();
+            renderEvaluation(result, {title: 'Submission Evaluation (Not Final)'});
         } catch (err) {
-            document.getElementById("output").textContent = "Submission error: " + err;
+            document.getElementById('output').textContent = 'Submission error: ' + err;
         } finally {
             submitBtn.disabled = false;
-            submitBtn.innerText = "Submit Code";
+            submitBtn.innerText = 'Submit Code';
         }
     }
+
+    async function finalSubmit() {
+        const submitBtn = document.getElementById('final-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Submitting...';
+        try {
+            const code = editor.getValue();
+            const language = document.getElementById('language').value;
+            const response = await fetch('/final_submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, language })
+            });
+            if (!response.ok) {
+                document.getElementById('output').textContent = 'Final submission failed. Please try again.';
+                return;
+            }
+            const result = await response.json();
+            renderEvaluation(result, {title: 'Final Submission'});
+            setTimeout(() => { window.location.href = '/thankyou'; }, 4000);
+        } catch (err) {
+            document.getElementById('output').textContent = 'Final submit error: ' + err;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Submit Test';
+        }
+    }
+
+    // Panel resize logic
+    (function initResizer(){
+      const resizer = document.getElementById('resizer');
+      const left = document.querySelector('.left-panel');
+      const right = document.querySelector('.right-panel');
+      const container = document.body; // flex container
+
+      let dragging = false;
+      let startX = 0;
+      let startLeftWidth = 0;
+
+      const minLeftPct = 20; // min 20%
+      const maxLeftPct = 70; // max 70%
+
+      function onMouseDown(e){
+        dragging = true;
+        startX = e.clientX;
+        startLeftWidth = left.getBoundingClientRect().width;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+      }
+
+      function onMouseMove(e){
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const containerWidth = container.getBoundingClientRect().width;
+        let newLeft = ((startLeftWidth + dx) / containerWidth) * 100;
+        newLeft = Math.max(minLeftPct, Math.min(maxLeftPct, newLeft));
+        left.style.width = newLeft + '%';
+        right.style.width = (100 - newLeft) + '%';
+      }
+
+      function onMouseUp(){
+        if (!dragging) return;
+        dragging = false;
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      }
+
+      resizer.addEventListener('mousedown', onMouseDown);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      // Touch support
+      resizer.addEventListener('touchstart', (e)=>{ if(e.touches[0]) onMouseDown(e.touches[0]); });
+      window.addEventListener('touchmove', (e)=>{ if(e.touches[0]) onMouseMove(e.touches[0]); });
+      window.addEventListener('touchend', onMouseUp);
+    })();
+
+    // Output panel resize logic
+    (function initOutputResizer(){
+      const resizer = document.getElementById('output-resizer');
+      const output = document.getElementById('output');
+      let dragging = false;
+      let startY = 0;
+      let startH = 0;
+      const minH = 100; // px
+      const maxH = 500; // px
+
+      function onDown(e){
+        dragging = true;
+        startY = e.clientY;
+        startH = output.getBoundingClientRect().height;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'row-resize';
+      }
+      function onMove(e){
+        if (!dragging) return;
+        const dy = e.clientY - startY;
+        let newH = startH + dy; // drag down increases height
+        newH = Math.max(minH, Math.min(maxH, newH));
+        output.style.height = newH + 'px';
+        if (window.editor && editor.layout) editor.layout();
+      }
+      function onUp(){
+        if (!dragging) return;
+        dragging = false;
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      }
+
+      resizer.addEventListener('mousedown', onDown);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      // Touch support
+      resizer.addEventListener('touchstart', (e)=>{ if(e.touches[0]) onDown(e.touches[0]); });
+      window.addEventListener('touchmove', (e)=>{ if(e.touches[0]) onMove(e.touches[0]); });
+      window.addEventListener('touchend', onUp);
+    })();
   </script>
 
 </body>

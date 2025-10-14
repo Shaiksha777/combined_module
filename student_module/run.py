@@ -5,6 +5,9 @@ import time
 from token_handler import decrpyt_token
 import pandas as pd
 import os
+import csv
+import json
+from datetime import datetime
 app = Flask(__name__)
 from AI_engine import load_models,predict
 CORS(app)
@@ -64,6 +67,49 @@ def get_question_and_samples(question_id):
         "sample_outputs": sample_outputs_list
     }
 
+def get_boiler_code_for(email: str, question_id: str) -> str:
+    try:
+        assigned_csv = os.path.join(BASE_DIR, 'random_question', 'assigned_questions.csv')
+        if not os.path.exists(assigned_csv):
+            return ""
+        with open(assigned_csv, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get('email') == email and row.get('question_assigned') == question_id:
+                    return row.get('boiler_code', '') or ''
+    except Exception as e:
+        print('Failed to load boiler code:', e)
+    return ""
+
+
+def get_test_cases_for(email: str, question_id: str):
+    """Return a list of {input, expected_output} from assigned_questions.csv for this email+qid."""
+    try:
+        assigned_csv = os.path.join(BASE_DIR, 'random_question', 'assigned_questions.csv')
+        if not os.path.exists(assigned_csv):
+            return []
+        with open(assigned_csv, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get('email') == email and row.get('question_assigned') == question_id:
+                    raw = row.get('test_cases', '[]')
+                    try:
+                        cases = json.loads(raw)
+                        norm = []
+                        for c in cases:
+                            if isinstance(c, dict):
+                                norm.append({
+                                    'input': str(c.get('input', '')),
+                                    'expected_output': str(c.get('expected_output', '')).strip()
+                                })
+                        return norm
+                    except Exception:
+                        return []
+    except Exception as e:
+        print('Failed to load test cases:', e)
+    return []
+
+
 @app.route('/index')
 def return_index():
     email = session.get('email')
@@ -72,13 +118,15 @@ def return_index():
         return redirect(url_for('index'))
 
     data = get_question_and_samples(question_id)
+    boiler_code = get_boiler_code_for(email, question_id)
     return render_template(
         'index.html',
         name=email,
         question=data['question'],
         question_id=question_id,
         sample_inputs=data['sample_inputs'],
-        sample_outputs=data['sample_outputs']
+        sample_outputs=data['sample_outputs'],
+        boiler_code=boiler_code
     )
 
 
@@ -144,9 +192,21 @@ def run_code():
         code = data.get("code", "")
         language = data.get("language", "python")
 
-        id = session.get('email')
-        output, error = execute_code(code, language,id)
-        return jsonify({"output": output, "error": error})
+        email = session.get('email')
+        qid = session.get('question_id')
+        id = email
+        # Evaluate only first available test case
+        cases = get_test_cases_for(email, qid)
+        test = cases[0] if cases else {'input': '', 'expected_output': ''}
+        output, error = execute_code(code, language, id, input_data=test.get('input', ''))
+        actual = (output or '').strip()
+        expected = (test.get('expected_output', '') or '').strip()
+        passed = (error == '' and (expected == '' or actual == expected))
+        return jsonify({
+            "mode": "single",
+            "test": {"input": test.get('input', ''), "expected_output": expected},
+            "result": {"output": output, "error": error, "passed": passed}
+        })
 
     except Exception as e:
         return jsonify({"output": "", "error": str(e)}), 500
@@ -160,10 +220,113 @@ def submit_code():
         print(data)
         code = data.get("code", "")
         language = data.get("language", "python")
-        
-        p_class, label = predict(code=code,tokenizer=tokenizer,model=model)
-        print('the predicted label is: ',label)
-        return jsonify({"label": label})
+
+        email = session.get('email')
+        qid = session.get('question_id')
+        id = email
+        cases = get_test_cases_for(email, qid)
+
+        results = []
+        passed_count = 0
+        for idx, t in enumerate(cases):
+            out, err = execute_code(code, language, id, input_data=t.get('input', ''))
+            actual = (out or '').strip()
+            expected = (t.get('expected_output', '') or '').strip()
+            passed = (err == '' and (expected == '' or actual == expected))
+            passed_count += 1 if passed else 0
+            results.append({
+                "index": idx+1,
+                "input": t.get('input', ''),
+                "expected_output": expected,
+                "output": out,
+                "error": err,
+                "passed": passed
+            })
+
+        # Plagiarism detection (evaluation-only)
+        try:
+            p_class, label = predict(code=code, tokenizer=tokenizer, model=model)
+        except Exception as e:
+            label = f"plagiarism_check_failed: {e}"
+
+        # Evaluation-only response
+        return jsonify({
+            "mode": "all",
+            "summary": {"total": len(cases), "passed": passed_count},
+            "results": results,
+            "plagiarism_label": label
+        })
+
+@app.route('/final_submit', methods=["POST"]) 
+def final_submit():
+        data = request.get_json()
+        if not data:
+            return "Invalid request", 400
+        code = data.get("code", "")
+        language = data.get("language", "python")
+
+        email = session.get('email')
+        qid = session.get('question_id')
+        id = email
+        cases = get_test_cases_for(email, qid)
+
+        results = []
+        passed_count = 0
+        for idx, t in enumerate(cases):
+            out, err = execute_code(code, language, id, input_data=t.get('input', ''))
+            actual = (out or '').strip()
+            expected = (t.get('expected_output', '') or '').strip()
+            passed = (err == '' and (expected == '' or actual == expected))
+            passed_count += 1 if passed else 0
+            results.append({
+                "index": idx+1,
+                "input": t.get('input', ''),
+                "expected_output": expected,
+                "output": out,
+                "error": err,
+                "passed": passed
+            })
+
+        # Plagiarism detection
+        try:
+            p_class, label = predict(code=code, tokenizer=tokenizer, model=model)
+        except Exception as e:
+            label = f"plagiarism_check_failed: {e}"
+
+        # Persist results to CSV
+        try:
+            csv_path = os.path.join(os.path.dirname(__file__), 'result.csv')
+            write_header = not os.path.exists(csv_path)
+            with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+                fieldnames = [
+                    'timestamp','email','question_id','language','total_tests','passed_tests','plagiarism_label','results_json'
+                ]
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if write_header:
+                    writer.writeheader()
+                writer.writerow({
+                    'timestamp': datetime.utcnow().isoformat(timespec='seconds') + 'Z',
+                    'email': email,
+                    'question_id': qid,
+                    'language': language,
+                    'total_tests': len(cases),
+                    'passed_tests': passed_count,
+                    'plagiarism_label': label,
+                    'results_json': json.dumps(results, ensure_ascii=False)
+                })
+        except Exception as e:
+            print('Failed to persist results:', e)
+
+        return jsonify({
+            "mode": "all",
+            "summary": {"total": len(cases), "passed": passed_count},
+            "results": results,
+            "plagiarism_label": label
+        })
+
+@app.route('/thankyou')
+def thank_you():
+    return render_template('thankyou.html')
     
 if __name__ == "__main__":
     app.run('0.0.0.0',debug=True,port=5010)
